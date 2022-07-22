@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'package:location/location.dart';
 
 import 'constants.dart';
@@ -16,17 +17,20 @@ class OrderTrackingPage extends StatefulWidget {
 
 class OrderTrackingPageState extends State<OrderTrackingPage> {
   final Completer<GoogleMapController> _controller = Completer();
-  LatLng destination = LatLng(28.6922, 77.1507);
 
-  //data from api - waypoints
-  List<PolylineWayPoint> waypoints = [
-    PolylineWayPoint(location: 'A-11,Budh-Vihar,Phase-1,Delhi-110086',),
-    PolylineWayPoint(location: 'Tarun Enclave'),
-    PolylineWayPoint(
-        location:
-            'A-4 Block,Baba Ramdev Marg,Shiva Enclave,Paschim-Vihar,New Delhi, Delhi 110063'),
+  List<LatLng> kajsbd = [
+    new LatLng(28.7020, 77.0789),
+    new LatLng(29.7020, 78.0789),
+    new LatLng(30.7020, 79.0789),
+    new LatLng(31.7020, 80.0789),
+    new LatLng(32.7020, 81.0789),
+    new LatLng(33.7020, 82.0789),
   ];
-  //final path
+
+  LatLng sourceLocation = LatLng(28.55, 77.2667);
+  LatLng destination = LatLng(33.7020, 82.0789);
+  int sleectedmarker = 0;
+
   List<LatLng> polylineCoordinate = [];
   LocationData? currentLocation;
 
@@ -44,10 +48,10 @@ class OrderTrackingPageState extends State<OrderTrackingPage> {
     PolylinePoints polylinePoints = PolylinePoints();
     try {
       result = await polylinePoints.getRouteBetweenCoordinates(
-          google_api_key,
-          PointLatLng(currentLocation!.latitude!, currentLocation!.longitude!),
-          PointLatLng(destination.latitude, destination.longitude),
-          wayPoints: waypoints);
+        google_api_key,
+        PointLatLng(sourceLocation.latitude, sourceLocation.longitude),
+        PointLatLng(destination.latitude, destination.longitude),
+      );
 
       if (result.points.isNotEmpty) {
         print('IIIIIIIIIIIIII');
@@ -70,6 +74,8 @@ class OrderTrackingPageState extends State<OrderTrackingPage> {
   @override
   void initState() {
     getCurrentLocation();
+    sourceLocation = kajsbd[sleectedmarker];
+    destination = kajsbd[sleectedmarker + 1];
     getPolyPoints();
     super.initState();
   }
@@ -92,7 +98,54 @@ class OrderTrackingPageState extends State<OrderTrackingPage> {
               ),
             ),
             GestureDetector(
-              onTap: () {},
+              onTap: () {
+                setState(() {
+
+                  if (result.points.isNotEmpty) {
+                    result.points.forEach(
+                      (PointLatLng pt) => {
+                        polylineCoordinate.clear(),
+                      },
+                    );
+                  } 
+
+                  sleectedmarker++;
+                  if (sleectedmarker >= 5) {
+                    sleectedmarker = 0;
+                    sourceLocation = kajsbd[sleectedmarker];
+                    destination = kajsbd[sleectedmarker + 1];
+                  } else {
+                    sourceLocation = kajsbd[sleectedmarker-1];
+                    destination = kajsbd[sleectedmarker];
+                  }
+                  
+                  getPolyPoints();
+                  // List<PointLatLng> lst = [
+                  //   PointLatLng(
+                  //       sourceLocation.latitude, sourceLocation.longitude),
+                  //   PointLatLng(destination.latitude, destination.longitude)
+                  // ];
+                  // result.points = lst;
+
+                  // if (result.points.isNotEmpty) {
+                  //   result.points.forEach(
+                  //     (PointLatLng pt) => {
+                  //       polylineCoordinate.add(
+                  //         LatLng(pt.latitude, pt.longitude),
+                  //       ),
+                  //     },
+                  //   );
+                  // }
+
+
+
+                  //             result = await polylinePoints.getRouteBetweenCoordinates(
+                  //   google_api_key,
+                  //   PointLatLng(sourceLocation.latitude, sourceLocation.longitude),
+                  //   PointLatLng(destination.latitude, destination.longitude),
+                  // );
+                });
+              },
               child: Text(
                 'Update',
                 style: TextStyle(
@@ -112,35 +165,49 @@ class OrderTrackingPageState extends State<OrderTrackingPage> {
           : Center(
               child: GoogleMap(
                 initialCameraPosition: CameraPosition(
-                  target: LatLng(
-                      currentLocation!.latitude!, currentLocation!.longitude!),
-                  zoom: 5,
+                  target:
+                      LatLng(sourceLocation.latitude, sourceLocation.longitude),
+                  zoom: 10,
                 ),
                 polylines: {
                   Polyline(
-                      polylineId: PolylineId("distance"),
+                      polylineId: PolylineId("route"),
                       points: polylineCoordinate,
                       color: Colors.black,
                       width: 6),
                 },
                 markers: {
                   Marker(
-                    markerId: const MarkerId("source"),
-                    position: LatLng(currentLocation!.latitude!,
-                        currentLocation!.longitude!),
+                    markerId: MarkerId("source"),
+                    icon: BitmapDescriptor.defaultMarker,
+                    position: sourceLocation,
                   ),
                   Marker(
-                    markerId: const MarkerId("destination"),
+                    markerId: MarkerId("destination"),
+                    icon: BitmapDescriptor.defaultMarker,
                     position: destination,
                   ),
-                  ...waypoints.asMap().entries.map((dest) {
-                    int destnum = dest.key;
-                    PolylineWayPoint desti = dest.value;
-                    return Marker(
-                      markerId: MarkerId(destnum.toString()),
-                      icon: BitmapDescriptor.defaultMarker,
-                    );
-                  },),
+
+                  // const Marker(
+                  //   markerId: const MarkerId("destination1"),
+                  //   icon: BitmapDescriptor.defaultMarker,
+                  //   position: kajsbd[0],
+                  // ),
+                  // const Marker(
+                  //   markerId: MarkerId("destination2"),
+                  //   icon: BitmapDescriptor.defaultMarker,
+                  //   position: kajsbd[1],
+                  // ),
+                  // const Marker(
+                  //   markerId: MarkerId("destination3"),
+                  //   icon: BitmapDescriptor.defaultMarker,
+                  //   position: kajsbd[2],
+                  // ),
+                  // const Marker(
+                  //   markerId: MarkerId("destination4"),
+                  //   icon: BitmapDescriptor.defaultMarker,
+                  //   position: kajsbd[3],
+                  // ),
                 },
               ),
             ),
